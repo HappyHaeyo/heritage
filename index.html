@@ -1,0 +1,45 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f2eee5" />
+  <meta name="description" content="세계 곳곳에 있는 한국 문화유산의 소장 기록을 탐색합니다." />
+  <title>먼 곳의 유산 — Heritage Atlas</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <a class="skip-link" href="#globe-stage">시각화로 건너뛰기</a>
+  <header class="masthead">
+    <a class="brand" href="./" aria-label="먼 곳의 유산 처음으로"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="13"/><ellipse cx="16" cy="16" rx="6" ry="13"/><path d="M3 16h26M6 8.5c6 3 14 3 20 0M6 23.5c6-3 14-3 20 0"/></svg><span>먼 곳의 유산<small>HERITAGE ATLAS</small></span></a>
+    <nav class="main-nav" aria-label="탐색 방식"><button class="nav-link active" data-mode="objects" aria-pressed="true">세계 분포</button><button class="nav-link" data-mode="cases" aria-pressed="false">반출·귀환 기록 <span>07</span></button></nav>
+    <button class="about-button" id="about">자료 안내 <span aria-hidden="true">↗</span></button>
+  </header>
+  <main class="workspace">
+    <section class="atlas" aria-labelledby="atlas-title">
+      <div class="overview-heading"><div><p class="eyebrow">KOREAN HERITAGE / COLLECTED RECORDS</p><h1 id="atlas-title">세계에 흩어진 <em>우리의 유산</em></h1></div><p class="overview-total"><strong id="record-total">21,474</strong><span>수집 기록 · <b id="country-total">9</b>개국</span></p></div>
+      <div class="overview-toolbar"><p class="unit-key"><i></i> 점 하나 = 수집 기록 한 건 <span>확대하면 유물 사진으로 전환</span></p><div class="overview-zoom"><button id="zoom-out" aria-label="지도 축소">−</button><output id="zoom-value">1.0×</output><button id="zoom-in" aria-label="지도 확대">＋</button><button id="reset-view" aria-label="세계 전체 보기">전체 보기 ↺</button></div></div>
+      <div class="map-reading"><label class="country-jump"><span>국가 이동</span><select id="map-country" aria-label="지도에서 볼 국가"><option value="">세계 전체</option></select></label><div class="map-context"><strong id="zoom-country" role="status">전체 분포</strong><p id="zoom-reading">국가를 누르면 유물 사진을 볼 수 있습니다.</p></div><button id="open-country" hidden>기록 목록 보기 ↗</button></div>
+      <div id="globe-stage" class="globe-stage" aria-label="점으로 보는 국가별 수집 기록. 국가를 선택하거나 확대하면 같은 위치에 사진이 나타납니다. 플러스와 마이너스로 확대 축소, 사진 화면에서는 휠과 방향키로 이동, Ctrl와 휠로 확대 축소, 0으로 전체 보기."><div id="globe-canvas" class="globe-canvas" role="img" aria-label="한국 중심의 세계 지도와 국가별 수집 기록 점 묶음"></div><div id="globe-labels" class="globe-labels"></div><div id="globe-fallback" class="globe-fallback" hidden>기본 그래픽 모드</div></div>
+      <p class="scope-note" id="scope-note">출처 간 중복이 포함된 수집 기록입니다. 국가별 전체 보유량이 아닙니다. 점은 국가별로 모아 배치했으며, 개별 유물의 실제 위치가 아닙니다.</p>
+    </section>
+  </main>
+  <dialog id="collection-dialog" class="collection-dialog" aria-labelledby="collection-title"><button id="close-collection" class="dialog-close" aria-label="기록 목록 닫기">지도 돌아가기 ×</button>
+    <section class="collection" id="collection" aria-labelledby="collection-title">
+      <div class="collection-top"><div><p class="eyebrow" id="collection-eyebrow">THE COLLECTION / JAPAN</p><h2 id="collection-title">일본에 있는 유산</h2></div><span class="catalog-index" id="catalog-index">01 / 09</span></div>
+      <div class="country-tabs" id="country-tabs" aria-label="소장 국가 선택"></div>
+      <div class="collection-tools"><label class="search-field"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="유물 이름, 소장처 검색" aria-label="유물 이름 또는 소장처 검색" /></label><button id="filter-toggle" class="filter-toggle" aria-expanded="false" aria-controls="filters">필터 <span aria-hidden="true">☷</span></button></div>
+      <div id="filters" class="filters" hidden><label>자료 출처<select id="source-filter"><option value="all">모든 출처</option></select></label><label class="check-filter"><input id="photos-only" type="checkbox" />사진 있는 자료만</label><button id="clear-filters">초기화</button></div>
+      <div id="active-filters" class="active-filters" hidden><span></span><button id="reset-active-filters">조건 지우기 ×</button></div>
+      <div class="results-line"><p id="results-count" role="status" aria-live="polite">자료를 불러오는 중…</p><span id="sort-label">사진·설명이 있는 자료 우선</span></div>
+      <div id="card-list" class="card-list" aria-busy="true"></div>
+      <div id="load-more-wrap" class="load-more-wrap" hidden><button id="load-more">더 살펴보기 <span>↓</span></button></div>
+      <div class="collection-foot"><span id="collection-note">기관의 공개 소장 기록을 바탕으로 구성했습니다.</span><span>ARCHIVE / 2026.10</span></div>
+    </section>
+  </dialog>
+  <footer class="site-footer"><span>KOREAN CULTURAL HERITAGE, ACROSS BORDERS.</span><span>데이터 탐색 시제품 <i>·</i> 2026</span></footer>
+  <dialog id="detail-dialog" class="detail-dialog"><button class="dialog-close" id="close-detail" aria-label="상세 보기 닫기">×</button><div id="detail-content"></div></dialog>
+  <dialog id="about-dialog" class="about-dialog"><div class="about-head"><p class="eyebrow">ABOUT THE ARCHIVE</p><button id="close-about" aria-label="자료 안내 닫기">×</button></div><h2>무엇을 보고 있나요?</h2><p>해외에 있는 한국 문화유산의 공개 소장 기록을 모은 탐색 시제품입니다. 국가를 선택하고, 한 점의 사진에서 소장처와 설명으로 들어가 보세요.</p><dl class="about-facts"><div><dt>수집일</dt><dd>2026년 10월 2일</dd></div><div><dt>탐색 범위</dt><dd id="about-scope">9개국 · 21,474개 출처별 레코드</dd></div><div><dt>지도</dt><dd>Natural Earth / World Atlas · 한국 중심 세계 지도 · 국가 대표 위치</dd></div></dl><h3>숫자와 상태를 읽는 방법</h3><p>숫자는 이번에 확보한 <strong>출처별 자료 건수</strong>입니다. 서로 다른 출처에 같은 유물이 등장할 수 있고, 한 기록이 여러 점이나 여러 책을 묶기도 합니다. 국가별 전체 보유량이나 약탈 규모를 뜻하지 않습니다.</p><p>소장품 기록만으로 약탈 여부를 판단하지 않습니다. 별도의 ‘반출·귀환 기록’에는 공식 근거가 있는 사례를 모았습니다. <strong>대여로 국내에 있는 경우와 소유권 반환 완료를 구분</strong>합니다.</p><h3>자료 출처</h3><div id="source-links" class="source-links"></div><p class="about-small">사진은 제공 기관의 원본 주소에서 불러옵니다. 사진 권리 표시는 유물 상세에서 확인할 수 있습니다. Met 자료는 일부 수집본입니다.</p></dialog>
+  <script type="module" src="/src/main.js"></script>
+</body></html>
