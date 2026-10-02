@@ -78,6 +78,7 @@ npm run dev
 
 ## GitHub Pages 경로
 
-`npm run build`는 `/heritage/`를 기준으로 에셋·데이터 경로를 생성합니다. `npm run preview`로 미리 볼 때는 http://127.0.0.1:4175/heritage/ 를 엽니다. 개발 서버(`npm run dev`)는 기존 http://127.0.0.1:4175/ 를 유지합니다. 배포할 파일은 `dist/`에 생성됩니다. 이 경로 설정과 별도로 GitHub Pages 배포 설정이 필요합니다.
+`npm run build`는 `/heritage/`를 기준으로 에셋·데이터 경로를 생성합니다. `npm run preview`로 미리 볼 때는 http://127.0.0.1:4175/heritage/ 를 엽니다. 개발 서버(`npm run dev`)는 기존 http://127.0.0.1:4175/ 를 유지합니다. 배포할 파일은 `dist/`에 생성됩니다. 저장소 Settings → Pages → Source를 GitHub Actions로 선택하면 `.github/workflows/deploy.yml`이 main에 푸시할 때마다 빌드 결과를 자동 배포합니다. 배포 주소: https://HappyHaeyo.github.io/heritage/
 
 `npm run test:base`는 빌드 후 `/heritage/` 전용 로컬 정적 서버를 띄워 에셋·9개국 데이터·상세·홈 이동을 검증하고 종료합니다. 별도 개발 서버가 필요하지 않습니다. 브라우저는 기존 검사와 동일하게 Microsoft Edge를 사용하며, `PLAYWRIGHT_EXECUTABLE_PATH`로 경로를 지정할 수 있습니다.
+
