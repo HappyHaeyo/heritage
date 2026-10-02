@@ -10,7 +10,7 @@ const link = (url,label,primary=false) => safeUrl(url)?`<a class="${primary?'pri
 const fact = (label,value) => `<div><dt>${esc(label)}</dt><dd>${esc(value || '자료에 표기 없음')}</dd></div>`;
 const noPhoto = (message='수집본에 사진 주소 없음') => `<div class="no-photo"><span aria-hidden="true">器</span>${esc(message)}<small>소장 기록은 확인할 수 있습니다</small></div>`;
 const shortSource = {okchf:'국외소재문화유산재단',nrich:'국립문화유산연구원',cleveland:'CLEVELAND',chicago:'ART INSTITUTE',va:'V&A',smithsonian:'SMITHSONIAN',met_partial:'THE MET'};
-async function json(url) { const res=await fetch(url);if(!res.ok)throw new Error(`자료 요청 실패 (${res.status})`);return res.json(); }
+async function json(path) { const res=await fetch(import.meta.env.BASE_URL + path);if(!res.ok)throw new Error(`자료 요청 실패 (${res.status})`);return res.json(); }
 const state={mode:'objects',country:'JP',query:'',source:'all',photos:false,limit:24,rows:[],loading:false};
 let manifest, cases, globe, requestId=0;
 const cache=new Map();
@@ -42,7 +42,7 @@ async function selectCountry(code){
   if(state.mode==='cases'){state.rows=cases.filter(r=>code==='all'||r.country===code);renderCards();return;}
   state.loading=true;state.rows=[];$('#active-filters').hidden=true;$('#card-list').setAttribute('aria-busy','true');$('#card-list').className='card-list';$('#card-list').innerHTML='<div class="skeleton"></div><div class="skeleton"></div>';$('#results-count').textContent='자료를 불러오는 중…';$('#load-more-wrap').hidden=true;
   try{
-    if(!cache.has(code))cache.set(code,json(`/data/${code}.json`).catch(e=>{cache.delete(code);throw e;}));
+    if(!cache.has(code))cache.set(code,json(`data/${code}.json`).catch(e=>{cache.delete(code);throw e;}));
     const rows=await cache.get(code);if(token!==requestId)return;state.loading=false;state.rows=rows;renderCards();
   }catch(e){if(token!==requestId)return;state.loading=false;$('#card-list').innerHTML='<div class="empty-state error-state"><strong>자료를 불러오지 못했습니다.</strong><p>연결을 확인한 뒤 다시 시도해 주세요.</p><button id="retry">다시 불러오기</button></div>';$('#retry').onclick=()=>selectCountry(code);$('#results-count').textContent='불러오기 실패';$('#card-list').setAttribute('aria-busy','false');}
 }
@@ -82,10 +82,10 @@ function setMode(mode){
   if(mode==='objects'){if($('#collection-dialog').open)$('#collection-dialog').close();globe?.reset();return;}
   selectCountry('all');if(!$('#collection-dialog').open)$('#collection-dialog').showModal();
 }
-function getRows(code){if(!cache.has(code))cache.set(code,json('/data/'+code+'.json').catch(e=>{cache.delete(code);throw e;}));return cache.get(code);}
+function getRows(code){if(!cache.has(code))cache.set(code,json('data/'+code+'.json').catch(e=>{cache.delete(code);throw e;}));return cache.get(code);}
 function showCollection(code){syncNav('objects');if(state.mode==='objects'&&state.country===code&&state.rows.length&&!state.loading){if(!$('#collection-dialog').open)$('#collection-dialog').showModal();return;}state.mode='objects';state.query='';state.source='all';state.photos=false;$('#search').value='';$('#source-filter').value='all';$('#photos-only').checked=false;selectCountry(code);if(!$('#collection-dialog').open)$('#collection-dialog').showModal();}
 async function boot(){
-  [manifest,cases]=await Promise.all([json('/data/manifest.json'),json('/data/cases.json')]);
+  [manifest,cases]=await Promise.all([json('data/manifest.json'),json('data/cases.json')]);
   $('#record-total').textContent=num(manifest.total);$('#country-total').textContent=manifest.countries.length;
   $('#map-country').innerHTML='<option value="">세계 전체</option>'+manifest.countries.map(c=>`<option value="${c.code}">${esc(c.name)}</option>`).join('');
   $('#map-country').onchange=e=>e.target.value?globe?.focus(e.target.value):globe?.reset();
@@ -104,7 +104,7 @@ async function boot(){
   $('#close-collection').onclick=()=>$('#collection-dialog').close();
   $('#collection-dialog').addEventListener('close',()=>syncNav('objects'));
   $('#open-country').onclick=()=>{const code=globe?.getCountry();if(code)showCollection(code);};
-  const world=await json('/data/world.json');globe=createDistribution({countries:manifest.countries,world,loadCountry:getRows,onOpen:r=>openDetail(r,false)});
+  const world=await json('data/world.json');globe=createDistribution({countries:manifest.countries,world,loadCountry:getRows,onOpen:r=>openDetail(r,false)});
   $('#reset-view').onclick=()=>globe?.reset();$('#zoom-in').onclick=()=>globe?.zoom(-.3);$('#zoom-out').onclick=()=>globe?.zoom(.3);
 }
 boot().catch(e=>{console.error(e);$('#card-list').innerHTML='<div class="empty-state error-state"><strong>자료를 준비하지 못했습니다.</strong><p>개발 서버를 통해 접속했는지 확인해 주세요.</p><button onclick="location.reload()">다시 시도</button></div>';$('#card-list').setAttribute('aria-busy','false');$('#results-count').textContent='불러오기 실패';});

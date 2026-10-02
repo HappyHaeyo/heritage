@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4175 --strictPort",
     "prepare:data": "node scripts/prepare-data.mjs",
-    "test": "node scripts/test-distribution.mjs && node scripts/test-map-input.mjs && node scripts/test-usability.mjs && node scripts/test-navigation.mjs"
+    "test": "node scripts/test-distribution.mjs && node scripts/test-map-input.mjs && node scripts/test-usability.mjs && node scripts/test-navigation.mjs",
+    "test:base": "npm run build && node scripts/test-base-path.mjs"
   },
   "dependencies": {
     "three": "^0.186.1",
