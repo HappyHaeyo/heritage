@@ -1,6 +1,6 @@
 ﻿import './style.css';
 import './overview.css';
-import { createDistribution } from './distribution.js';
+import { createAtlas } from './atlas.js';
 
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -104,7 +104,7 @@ async function boot(){
   $('#close-collection').onclick=()=>$('#collection-dialog').close();
   $('#collection-dialog').addEventListener('close',()=>syncNav('objects'));
   $('#open-country').onclick=()=>{const code=globe?.getCountry();if(code)showCollection(code);};
-  const world=await json('data/world.json');globe=createDistribution({countries:manifest.countries,world,loadCountry:getRows,onOpen:r=>openDetail(r,false)});
+  const world=await json('data/world.json');globe=createAtlas({countries:manifest.countries,world,loadCountry:getRows,onOpen:r=>openDetail(r,false),onSelectCountry:showCollection});
   $('#reset-view').onclick=()=>globe?.reset();$('#zoom-in').onclick=()=>globe?.zoom(-.3);$('#zoom-out').onclick=()=>globe?.zoom(.3);
 }
 boot().catch(e=>{console.error(e);$('#card-list').innerHTML='<div class="empty-state error-state"><strong>자료를 준비하지 못했습니다.</strong><p>개발 서버를 통해 접속했는지 확인해 주세요.</p><button onclick="location.reload()">다시 시도</button></div>';$('#card-list').setAttribute('aria-busy','false');$('#results-count').textContent='불러오기 실패';});

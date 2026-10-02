@@ -31,6 +31,7 @@ try{
  }
  await p.selectOption('#map-country','JP');await p.locator('#open-country').click();await p.locator('.artifact-card').first().click();await p.locator('#detail-dialog[open]').waitFor();await p.keyboard.press('Escape');await p.locator('#close-collection').click();
  await p.locator('[data-mode="cases"]').click();await p.locator('.case-card').first().waitFor();assert.equal(await p.locator('.case-card').count(),7);await p.keyboard.press('Escape');
+ await p.locator('[data-view="globe"]').click();await p.locator('#earth-canvas[data-ready]').waitFor();assert.equal(await p.locator('#earth-stage').isVisible(),true);await p.locator('[data-view="points"]').click();
  await p.locator('.brand').click();await p.locator('#globe-canvas[data-ready]').waitFor();assert.equal(p.url(),url);
  await p.reload({waitUntil:'domcontentloaded'});await p.locator('#globe-canvas[data-ready]').waitFor();
  assert.deepEqual(missing,[],'all local requests must stay under /heritage/ and exist');assert.deepEqual(errors,[]);

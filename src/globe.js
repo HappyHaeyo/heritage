@@ -6,12 +6,12 @@ const point = (lat, lon, r = 1.015) => {
   return new THREE.Vector3(r * Math.cos(a) * Math.cos(b), r * Math.sin(a), -r * Math.cos(a) * Math.sin(b));
 };
 
-export function createGlobe({ countries, world, onSelect }) {
-  const host = document.querySelector('#globe-canvas');
-  const labels = document.querySelector('#globe-labels');
+export function createGlobe({ countries, world, onSelect, onChange, host, labels }) {
+  const stage=host.parentElement;
+  let ignoreClickUntil=0;
   let renderer;
   try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
-  catch { document.querySelector('#globe-fallback').hidden = false; return { select() {}, reset() {}, zoom() {}, setMode() {} }; }
+  catch { return { available:false }; }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
   renderer.setClearColor(0x000000, 0);
   host.append(renderer.domElement);
@@ -29,7 +29,7 @@ export function createGlobe({ countries, world, onSelect }) {
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
   const features = feature(world, world.objects.countries).features;
-  let selected = 'JP', mode = 'objects', caseRows = [], target = null, dirty = true;
+  let selected = null, mode = 'objects', caseRows = [], target = null, dirty = true;
   let yaw = 0, pitch = 0;
   const maxPitch = THREE.MathUtils.degToRad(65);
   const applyRotation = () => group.rotation.set(pitch, yaw, 0, 'XYZ');
@@ -75,11 +75,12 @@ export function createGlobe({ countries, world, onSelect }) {
   const home = {code:'KR',name:'대한민국',lat:36.5,lon:127.8};
   const pins = [...countries,home].map(c => {
     const el = document.createElement('button'); el.className = 'globe-pin'+(c.code==='KR'?' home-pin':'');
+    el.dataset.code=c.code;
     el.setAttribute('aria-label', c.code==='KR'?'대한민국 중심으로 보기':`${c.name} 자료 보기`);
     const dot = document.createElement('span'); dot.className = 'pin-dot';
     const label = document.createElement('span'); label.className = 'pin-label';
     label.append(document.createTextNode(c.name+' ')); const count = document.createElement('b'); label.append(count);
-    el.append(dot,label); labels.append(el); el.addEventListener('click',()=>{if(c.code==='KR'){camera.position.z=3.55;focus('KR');}else onSelect(c.code);});
+    el.append(dot,label); labels.append(el); el.addEventListener('click',()=>{if(c.code==='KR')onSelect(null);else onSelect(c.code);});
     return {c,el,count,vec:point(c.lat,c.lon)};
   });
   function refreshPins() {
@@ -102,29 +103,37 @@ export function createGlobe({ countries, world, onSelect }) {
   const resize = new ResizeObserver(()=>{ width=host.clientWidth; height=host.clientHeight; if (!width||!height) return; renderer.setSize(width,height,false); camera.aspect=width/height; camera.updateProjectionMatrix(); dirty = true; }); resize.observe(host);
   const raycaster = new THREE.Raycaster();
   let drag = null;
-  host.addEventListener('pointerdown',e=>{ if(e.button!==0) return; target=null; drag={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY}; host.setPointerCapture(e.pointerId); host.classList.add('dragging'); });
-  host.addEventListener('pointermove',e=>{
+  stage.addEventListener('pointerdown',e=>{ if(e.button!==0) return; target=null; drag={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};  });
+  stage.addEventListener('pointermove',e=>{
     if(!drag) return;
+    if(Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)<5)return;
+    stage.setPointerCapture(e.pointerId);host.classList.add('dragging');
     const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
     yaw += dx*.004; pitch = THREE.MathUtils.clamp(pitch+dy*.004, -maxPitch, maxPitch);
     applyRotation(); dirty = true; drag.x=e.clientX;drag.y=e.clientY;
   });
-  host.addEventListener('pointerup',e=>{
+  stage.addEventListener('pointerup',e=>{
     if (!drag) return;
     const clicked = Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)<5;
     drag=null;host.classList.remove('dragging');
-    if (!clicked) return;
+    if (!clicked){ignoreClickUntil=performance.now()+350;return;}
+    if(e.target.closest('.globe-pin'))return;
     const rect=host.getBoundingClientRect();
     raycaster.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),camera);
     const hit=raycaster.intersectObject(globe)[0];
     if(hit?.uv){const px=pickCtx.getImageData(Math.min(2047,Math.floor(hit.uv.x*2048)),Math.min(1023,Math.floor((1-hit.uv.y)*1024)),1,1).data;const c=countries.find(c=>c.iso===(px[0]*256+px[1]));if(c && (mode==='objects'||caseRows.some(r=>r.country===c.code)))onSelect(c.code);}
   });
-  host.addEventListener('pointercancel',()=>{drag=null;host.classList.remove('dragging');});
+  stage.addEventListener('click',e=>{if(performance.now()<ignoreClickUntil){e.preventDefault();e.stopPropagation();}},true);
+  stage.addEventListener('pointercancel',()=>{drag=null;host.classList.remove('dragging');});
+  stage.addEventListener('wheel',e=>{e.preventDefault();camera.position.z=THREE.MathUtils.clamp(camera.position.z+Math.max(-.4,Math.min(.4,e.deltaY*.002)),2.6,4.8);dirty=true;},{passive:false});
+  host.tabIndex=0;host.setAttribute('aria-label','지구본. 드래그 또는 방향키로 회전, 휠 또는 플러스 마이너스로 확대 축소.');
+  host.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','0'].includes(e.key))return;e.preventDefault();target=null;if(e.key==='0'){onSelect(null);return;}if(['+','=','-'].includes(e.key))camera.position.z=THREE.MathUtils.clamp(camera.position.z+(e.key==='-'?.3:-.3),2.6,4.8);else{yaw+=e.key==='ArrowLeft'?-.2:e.key==='ArrowRight'?.2:0;pitch=THREE.MathUtils.clamp(pitch+(e.key==='ArrowUp'?-.15:e.key==='ArrowDown'?.15:0),-maxPitch,maxPitch);applyRotation();}dirty=true;});
   focus('KR',true);refreshPins();
   const v = new THREE.Vector3(); const projected = new THREE.Vector3();
+  let active=true,frame=0;
   let lastTime = performance.now();
   function animate() {
-    requestAnimationFrame(animate);
+    if(!active)return;frame=requestAnimationFrame(animate);
     const now=performance.now(),dt=Math.min((now-lastTime)/1000,.1);lastTime=now;
     if(document.hidden || (!dirty && !target)) return;
     dirty = false;
@@ -147,12 +156,16 @@ export function createGlobe({ countries, world, onSelect }) {
       el.dataset.crowded=String(crowded);if(!crowded)occupied.push({x,y});
       el.style.zIndex=String(c.code===selected?500:Math.round(v.z*100)+100);
     });
-    renderer.render(scene,camera);
+    renderer.render(scene,camera);host.dataset.yaw=String(yaw);host.dataset.pitch=String(pitch);
+    onChange?.({country:selected,zoom:3.55/camera.position.z,min:camera.position.z>=4.8,max:camera.position.z<=2.6});
   }
   animate();host.dataset.ready='true';
   return {
+    available:true,
+    getCountry(){return selected;},
+    setActive(value){if(active===value)return;active=value;if(active){dirty=true;lastTime=performance.now();animate();}else{cancelAnimationFrame(frame);drag=null;host.classList.remove('dragging');}},
     select(code,{move=true}={}){selected=code;drawTexture();refreshPins();if(move&&code!=='all')focus(code);},
-    reset(){camera.position.z=3.55;focus('KR');},
+    reset(){selected=null;drawTexture();refreshPins();camera.position.z=3.55;focus('KR');},
     zoom(delta){camera.position.z=THREE.MathUtils.clamp(camera.position.z+delta,2.6,4.8);dirty=true;},
     setMode(next, rows){mode=next;caseRows=rows;refreshPins();drawTexture();}
   };

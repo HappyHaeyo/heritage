@@ -25,6 +25,7 @@ export function createDistribution({countries,world,loadCountry,onOpen,onCountry
   const sprite=document.createElement('canvas');sprite.width=sprite.height=32;const sc=sprite.getContext('2d');sc.fillStyle='white';sc.beginPath();sc.arc(16,16,14,0,Math.PI*2);sc.fill();const dotTexture=new THREE.CanvasTexture(sprite);
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('map-connections');svg.setAttribute('aria-hidden','true');const wires=document.createElementNS(svg.namespaceURI,'g');svg.append(wires);stage.insertBefore(svg,labels);
   let width=1,height=1,spacing=2,zoom=1,panX=0,panY=0,selected=null,animation=null,frame=0,ignoreClickUntil=0;
+  let active=true;
   const photoNodes=new Map();
   const explorer=document.createElement('div');explorer.className='map-explorer';stage.before(explorer);explorer.append(stage);
   const navigator=document.createElement('aside');navigator.className='record-navigator';navigator.hidden=true;navigator.setAttribute('aria-label','전체 기록에서 탐색 위치 선택');
@@ -70,7 +71,7 @@ export function createDistribution({countries,world,loadCountry,onOpen,onCountry
   let mapTop=0,mapHeight=1;
   const fallback=document.createElement('canvas');fallback.className='map-canvas-fallback';if(!renderer)host.append(fallback);
   const screen=(x,y)=>({x:x*zoom+panX,y:y*zoom+panY});
-  function schedule(){if(!frame)frame=requestAnimationFrame(draw);}
+  function schedule(){if(active&&!frame)frame=requestAnimationFrame(draw);}
   function fetchRows(g){if(g.rows||g.pending||g.failed)return;g.pending=true;loadCountry(g.c.code).then(rows=>{g.rows=rows;g.pending=false;schedule();}).catch(()=>{g.failed=true;g.pending=false;schedule();});}
   function updatePhotos(){
     const step=spacing*zoom;const show=step>=60;const needed=new Set();let pending=false,failed=false;
@@ -96,7 +97,7 @@ export function createDistribution({countries,world,loadCountry,onOpen,onCountry
     stage.dataset.level=show?'photos':'points';
   }
   function draw(now){
-    frame=0;
+    frame=0;if(!active)return;
     if(animation){const t=Math.min(1,(now-animation.start)/520),e=1-Math.pow(1-t,3);zoom=animation.from.z+(animation.to.z-animation.from.z)*e;panX=animation.from.x+(animation.to.x-animation.from.x)*e;panY=animation.from.y+(animation.to.y-animation.from.y)*e;if(t===1)animation=null;else schedule();}
     if(!animation&&zoom>2&&!(spacing*zoom>=60&&selected)){const cx=(width/2-panX)/zoom,cy=(height/2-panY)/zoom;let nearest=groups[0];for(const g of groups)if((g.x-cx)**2+(g.y-cy)**2<(nearest.x-cx)**2+(nearest.y-cy)**2)nearest=g;if(selected!==nearest.c.code)choose(nearest.c.code);}
     if(!animation){if(zoom===1){panX=0;panY=0;}else{const xs=groups.flatMap(g=>[g.x+g.ext.minX*spacing,g.x+g.ext.maxX*spacing]);const ys=groups.flatMap(g=>[g.y+g.ext.minY*spacing,g.y+g.ext.maxY*spacing]);panX=THREE.MathUtils.clamp(panX,48-Math.max(...xs)*zoom,width-48-Math.min(...xs)*zoom);panY=THREE.MathUtils.clamp(panY,48-Math.max(...ys)*zoom,height-48-Math.min(...ys)*zoom);}}
@@ -123,7 +124,7 @@ export function createDistribution({countries,world,loadCountry,onOpen,onCountry
   function choose(code){selected=code;document.querySelector('#map-country').value=code||'';const c=countries.find(c=>c.code===code);document.querySelector('#zoom-country').textContent=c?`${c.name} · 전체 ${c.count.toLocaleString('ko-KR')}건 · 사진 주소 ${c.images.toLocaleString('ko-KR')}건`:'전체 분포';document.querySelector('#open-country').hidden=!c;document.querySelector('#open-country').textContent=c?`${c.name} 기록 보기 ↗`:'';onCountry?.(code);}
   function focus(code){const g=groups.find(g=>g.c.code===code);if(!g)return;choose(code);fetchRows(g);const z=Math.min(170,112/spacing);move(z,width/2-g.x*z,height/2-g.y*z);}
   function zoomAt(factor,x=width/2,y=height/2){const nz=THREE.MathUtils.clamp(zoom*factor,1,180);const wx=(x-panX)/zoom,wy=(y-panY)/zoom;move(nz,x-wx*nz,y-wy*nz,false);if(nz>2){let nearest=null,dist=Infinity;for(const g of groups){const d=(g.x-wx)**2+(g.y-wy)**2;if(d<dist){dist=d;nearest=g;}}if(nearest)choose(nearest.c.code);}else choose(null);}
-  function resize(){const old=width,oldSpacing=spacing,oldZoom=zoom;const anchor=groups.find(g=>g.c.code===selected);const offset=anchor?{x:((width/2-panX)/zoom-anchor.x)/spacing,y:((height/2-panY)/zoom-anchor.y)/spacing}:null;width=host.clientWidth;height=host.clientHeight;if(!width||!height)return;renderer?.setSize(width,height,false);fallback.width=width;fallback.height=height;svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
+  function resize(){if(!active||!host.clientWidth||!host.clientHeight)return;const old=width,oldSpacing=spacing,oldZoom=zoom;const anchor=groups.find(g=>g.c.code===selected);const offset=anchor?{x:((width/2-panX)/zoom-anchor.x)/spacing,y:((height/2-panY)/zoom-anchor.y)/spacing}:null;width=host.clientWidth;height=host.clientHeight;if(!width||!height)return;renderer?.setSize(width,height,false);fallback.width=width;fallback.height=height;svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
     spacing=2.2*Math.min(width/1180,height/530);mapHeight=width*.4;mapTop=(height-mapHeight)*.46;map.scale.set(width,mapHeight,1);map.position.set(width/2,height-mapTop-mapHeight/2,-2);
     for(const g of groups){const [nx,ny]=locations[g.c.code],head=width<650?39:48;g.x=nx*width-(g.ext.minX+g.ext.maxX)/2*spacing;g.y=ny*(height-110)+head-g.ext.minY*spacing;
       const a=g.geometry.attributes.position.array;g.cells.forEach(([x,y],i)=>{a[i*3]=g.x+x*spacing;a[i*3+1]=height-g.y-y*spacing;a[i*3+2]=0;});g.geometry.attributes.position.needsUpdate=true;g.geometry.computeBoundingSphere();
@@ -145,5 +146,5 @@ export function createDistribution({countries,world,loadCountry,onOpen,onCountry
   stage.addEventListener('dragstart',e=>e.preventDefault());
   stage.tabIndex=0;stage.addEventListener('keydown',e=>{if(e.target!==stage&&!e.target.closest('.map-object'))return;if(['+','=','-','0','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();if(e.key==='0'){choose(null);move(1,0,0);}else if(['+','=','-'].includes(e.key))zoomAt(e.key==='-'?1/1.6:1.6);else{panX+=e.key==='ArrowLeft'?80:e.key==='ArrowRight'?-80:0;panY+=e.key==='ArrowUp'?80:e.key==='ArrowDown'?-80:0;schedule();}}});
   new ResizeObserver(resize).observe(host);resize();choose(null);
-  return {focus,select(code){if(code!==selected&&countries.some(c=>c.code===code))focus(code);},setMode(){},reset(){choose(null);move(1,0,0);},zoom(delta){zoomAt(delta<0?1.8:1/1.8);},getCountry(){return selected;}};
+  return {setActive(value){active=value;if(!active){if(frame)cancelAnimationFrame(frame);frame=0;animation=null;}else{resize();choose(selected);schedule();}},focus,select(code){if(code!==selected&&countries.some(c=>c.code===code))focus(code);},setMode(){},reset(){choose(null);move(1,0,0);},zoom(delta){zoomAt(delta<0?1.8:1/1.8);},getCountry(){return selected;}};
 }
