@@ -1,6 +1,7 @@
-﻿import './style.css';
+import './style.css';
 import './overview.css';
-import { createAtlas } from './atlas.js';
+import { initStory } from './story.js';
+import { createExplorer } from './explorer.js';
 
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -12,7 +13,7 @@ const noPhoto = (message='수집본에 사진 주소 없음') => `<div class="no
 const shortSource = {okchf:'국외소재문화유산재단',nrich:'국립문화유산연구원',cleveland:'CLEVELAND',chicago:'ART INSTITUTE',va:'V&A',smithsonian:'SMITHSONIAN',met_partial:'THE MET'};
 async function json(path) { const res=await fetch(import.meta.env.BASE_URL + path);if(!res.ok)throw new Error(`자료 요청 실패 (${res.status})`);return res.json(); }
 const state={mode:'objects',country:'JP',query:'',source:'all',photos:false,limit:24,rows:[],loading:false};
-let manifest, cases, globe, requestId=0;
+let manifest, cases, globe, explorer, requestId=0;
 const cache=new Map();
 function imageHTML(row) { return safeUrl(row.image)?`<img src="${esc(safeUrl(row.image))}" alt="${esc(row.title)}" loading="lazy" referrerpolicy="no-referrer" />`:noPhoto(); }
 function handleImages(container) { container.querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{const holder=document.createElement('div');holder.innerHTML=noPhoto('사진을 불러오지 못했습니다');img.replaceWith(holder.firstElementChild);},{once:true})); }
@@ -83,7 +84,7 @@ function setMode(mode){
   selectCountry('all');if(!$('#collection-dialog').open)$('#collection-dialog').showModal();
 }
 function getRows(code){if(!cache.has(code))cache.set(code,json('data/'+code+'.json').catch(e=>{cache.delete(code);throw e;}));return cache.get(code);}
-function showCollection(code){syncNav('objects');if(state.mode==='objects'&&state.country===code&&state.rows.length&&!state.loading){if(!$('#collection-dialog').open)$('#collection-dialog').showModal();return;}state.mode='objects';state.query='';state.source='all';state.photos=false;$('#search').value='';$('#source-filter').value='all';$('#photos-only').checked=false;selectCountry(code);if(!$('#collection-dialog').open)$('#collection-dialog').showModal();}
+function showCollection(code){if(explorer){explorer.select(code);return;}syncNav('objects');if(state.mode==='objects'&&state.country===code&&state.rows.length&&!state.loading){if(!$('#collection-dialog').open)$('#collection-dialog').showModal();return;}state.mode='objects';state.query='';state.source='all';state.photos=false;$('#search').value='';$('#source-filter').value='all';$('#photos-only').checked=false;selectCountry(code);if(!$('#collection-dialog').open)$('#collection-dialog').showModal();}
 async function boot(){
   [manifest,cases]=await Promise.all([json('data/manifest.json'),json('data/cases.json')]);
   $('#record-total').textContent=num(manifest.total);$('#country-total').textContent=manifest.countries.length;
@@ -104,8 +105,10 @@ async function boot(){
   $('#close-collection').onclick=()=>$('#collection-dialog').close();
   $('#collection-dialog').addEventListener('close',()=>syncNav('objects'));
   $('#open-country').onclick=()=>{const code=globe?.getCountry();if(code)showCollection(code);};
-  const world=await json('data/world.json');globe=createAtlas({countries:manifest.countries,world,loadCountry:getRows,onOpen:r=>openDetail(r,false),onSelectCountry:showCollection});
+
   $('#reset-view').onclick=()=>globe?.reset();$('#zoom-in').onclick=()=>globe?.zoom(-.3);$('#zoom-out').onclick=()=>globe?.zoom(.3);
+  await initStory({manifest,showCollection,cases,openCase:r=>openDetail(r,true)});
+  explorer=createExplorer({host:document.querySelector('.atlas'),manifest,loadCountry:getRows});
 }
 boot().catch(e=>{console.error(e);$('#card-list').innerHTML='<div class="empty-state error-state"><strong>자료를 준비하지 못했습니다.</strong><p>개발 서버를 통해 접속했는지 확인해 주세요.</p><button onclick="location.reload()">다시 시도</button></div>';$('#card-list').setAttribute('aria-busy','false');$('#results-count').textContent='불러오기 실패';});
 
